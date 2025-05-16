@@ -12,9 +12,9 @@ int cb2d(char completo[]);
 //definir os estados 
 #define ESTADO_B 0 //BUSCA
 #define ESTADO_D 1 // DECODIFICAÇÃO
-#define ESTADO_E 2 // EXECUÇÃO(ULA)
-#define ESTADO_EE 3 // ACESSO A MEMORIA
-#define ESTADO_LW 4  //ESCREVE NA MEMORIA
+#define ESTADO_E 2 // EXECUCAO
+#define ESTADO_EE 3 // EXECUCAO 2
+#define ESTADO_LW 4  //EXECUCAO DO LW
 #define ESTADO_FINAL 5 //DEFINIR O FINAL
 
 typedef struct {
@@ -41,7 +41,7 @@ struct instrucao{
 };
 //step back pilha
 
-struct elemento{
+struct elemento{//elementos de estados que sao alterados
     unsigned int PC;
     struct mem memory[MEM_SIZE];
     int Reg[8];
@@ -267,26 +267,29 @@ void imprimeDados(struct mem memoriaComp[], int limiteInst){
 			printf("]\t");
 		}
 		while(aux<256){
-			printf("%d [%d]\t", aux, i);//memoriaComp[aux].dados);
+			printf("%d [%d]\t", aux, i);
 			aux++;
 		}
 		printf("\n");
 	}
 }
 // Em andamento...
-void menuExecucao (RegistradoresMIPS bancoReg, struct mem memoriaComp[], int limiteInst, unsigned int programCounter){
+void menuExecucao (RegistradoresMIPS bancoReg, struct mem memoriaComp[], int limiteInst, unsigned int programCounter, int estado){
 	int e;
-	printf("simbolico");
+	printf("----Menu de Execucoes----\n");
+	if(estado != 5)
+		printf("Clock: %i\tInstrucao:", estado);
+	else
+		printf("Ultimo Clock \tInstrucao:");
+	casm(memoriaComp[programCounter].inst);
+	printf("\n1- Imprime simulador\n");
 	scanf("%d", &e);
 	switch(e){
-		case 0:
-			return;
-			break;
-		
 		case 1:
 			imprimeRegistradores(bancoReg, programCounter);
 			imprimeDados(memoriaComp, limiteInst);
 			break;
+		
 	}
 	
 }
@@ -294,7 +297,7 @@ void menuExecucao (RegistradoresMIPS bancoReg, struct mem memoriaComp[], int lim
 
 
 void carregar_memoria(struct mem* memoriaDados, int* limiteInst) {
-    char nomeArquivo[256], linha[17];
+	char nomeArquivo[256], linha[20];
     int i = 0;
     FILE *arquivo = NULL;
     printf("Nome do arquivo:\t");
@@ -304,13 +307,12 @@ void carregar_memoria(struct mem* memoriaDados, int* limiteInst) {
 		printf("\nFalha ao abrir o arquivo!\n");
 	else {
 		while (fgets(linha, sizeof(linha), arquivo) != NULL){
-			puts(linha);
-            if(strlen(linha)==16 && i<256){
-                strcpy((memoriaDados+i)->inst, linha);
-                (*limiteInst) ++;
+			linha[16] = '\0';
+            if(strlen(linha)==16 && i<260){
+                strcpy(memoriaDados[i].inst, linha);
             }else{
 				if(strcmp(linha,"\n")!=0){
-					(memoriaDados+i)->dados = atoi(linha);	
+					memoriaDados[i].dados = atoi(linha);	
 				}
             }
             linha[0] = '\0';
@@ -456,7 +458,7 @@ void carregaMem(char palavra[] , struct instrucao* memoria){
 			memoria->imm = decimal; }// ADDR
 			break;
 	}
-    printf("instrução: \t");
+    printf("instrucao: %s\t",memoria->palavra);
     printf("opcode: %d\t", memoria->opcode); //esta passando um valor de 1 strcut so
     printf("RS: %d\t", memoria->rs);
     printf("RT: %d\t", memoria->rt);
@@ -561,7 +563,7 @@ void controle(struct instrucao* instruct, RegistradoresMIPS* mips, struct mem Me
 				val = ula(*PC, 1, 0);
 				*PC = val.resul;
 				estado = ESTADO_D;
-				menuExecucao(*mips, Mem, *topoInst, *PC);
+				menuExecucao(*mips, Mem, *topoInst, *PC, estado);
 				break;
 				
 			case ESTADO_D:
@@ -570,6 +572,7 @@ void controle(struct instrucao* instruct, RegistradoresMIPS* mips, struct mem Me
 				val = ula(*PC, instruct->imm, 0);//Calculo do desvio BEQ
 				BEQ = val.resul;
 				estado = ESTADO_E;
+				menuExecucao(*mips, Mem, *topoInst, *PC, estado);
 				break;
 				
 			case ESTADO_E:
@@ -595,6 +598,7 @@ void controle(struct instrucao* instruct, RegistradoresMIPS* mips, struct mem Me
 					printf("erro no opcode %d\n", instruct->opcode);
 					estado= ESTADO_FINAL;
 				}
+				menuExecucao(*mips, Mem, *topoInst, *PC, estado);
 				break;
 		
 			case ESTADO_EE:
@@ -614,6 +618,7 @@ void controle(struct instrucao* instruct, RegistradoresMIPS* mips, struct mem Me
 					Mem[val.resul].dados = ler_registrador(mips, instruct->rt);
 					estado = ESTADO_FINAL;
 				}
+				menuExecucao(*mips, Mem, *topoInst, *PC, estado);
 				break;
 			
 			case ESTADO_LW:
@@ -621,6 +626,7 @@ void controle(struct instrucao* instruct, RegistradoresMIPS* mips, struct mem Me
 					mips->registradores[instruct->rt] = RDM;
 				} 
 				estado= ESTADO_FINAL;
+				menuExecucao(*mips, Mem, *topoInst, *PC, estado);
 				break;
 		}
 	}
@@ -696,6 +702,9 @@ int main(){
     struct instrucao inst;
     carregar_memoria(memoriaComp, &topoInst);
     while(op != 0){
+		printf("A proxima instrucao e:");
+		casm(memoriaComp[programCounter+1].inst);
+		printf("\n");
 		printf("Escolha uma opcao:\n");
 		printf("1- step\t2- stepback\t0- exit\n");
 		scanf("%i", &op);
@@ -715,6 +724,10 @@ int main(){
 					printf("Nao tem instrucao mais para voltar\n");
 				}
 				break;	
+			case 3://imprime simulador
+				imprimeRegistradores(bancoReg, programCounter);
+				imprimeDados(memoriaComp, topoInst);
+				break;
 			case 0:
 				fre_pilha(pilha);
 				return 0;
