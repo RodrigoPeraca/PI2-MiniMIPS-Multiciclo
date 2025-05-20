@@ -57,11 +57,21 @@ typedef struct elemento back;
 typedef struct nodo_pilha nodo;
 typedef struct desc_pilha desc;
 
-
+void inicializaInst(struct instrucao* inst){
+	inst->addr = 0;
+	inst->funct = 0;
+	inst->imm = 0;
+	inst->rd = 0;
+	inst->rs = 0;
+	inst->rt = 0;
+	inst->opcode = 0;
+}
+	
 void carregaInst(char palavra[], struct instrucao* inst){
 	char binarioVI[6], binarioIV[4], binarioIII[3];
 	int indiceS; // Indice Switch
 	int decimal; // Variavel para preencher o vetor memoria
+	inicializaInst(inst);
 	strncpy(binarioIV, palavra +0, 4);
 	binarioIV[4] = '\0';
 	indiceS = cbd(binarioIV); // Conversao do opcode para decimal(Inteiro), a fim de acessar o Switch
@@ -277,14 +287,14 @@ void imprimeDados(struct mem memoriaComp[], int limiteInst){
 	}
 }
 // Em andamento...
-void menuExecucao (RegistradoresMIPS bancoReg, struct mem memoriaComp[], int limiteInst, unsigned int programCounter, int estado){
+void menuExecucao (RegistradoresMIPS bancoReg, struct mem memoriaComp[], int limiteInst, unsigned int programCounter, int estado, struct instrucao* RegInst){
 	int e;
 	printf("----Menu de Execucoes----\n");
 	if(estado != 5)
 		printf("Clock: %i\tInstrucao:", estado);
 	else
 		printf("Ultimo Clock \tInstrucao:");
-	casm(memoriaComp[programCounter-1].inst);
+	casm(RegInst->palavra);
 	printf("\n1- Imprime simulador\t2- Proximo estado\n");
 	scanf("%d", &e);
 	switch(e){
@@ -331,6 +341,7 @@ void carregaMem(char palavra[] , struct instrucao* memoria){
 	char binarioVI[6], binarioIV[4], binarioIII[3], binarioII[12];
 	int indiceS; // Indice Switch
 	int decimal; // Variavel para preencher o vetor memoria
+	inicializaInst(memoria);
 	strncpy(binarioIV, palavra +0, 4);
 	binarioIV[4] = '\0';
 	indiceS = cbd(binarioIV); // Conversao do opcode para decimal(Inteiro), a fim de acessar o Switch
@@ -464,6 +475,7 @@ void carregaMem(char palavra[] , struct instrucao* memoria){
 			memoria->imm = decimal; }// ADDR
 			break;
 	}
+	/*
     printf("instrucao: %s\t",memoria->palavra);
     printf("opcode: %d\t", memoria->opcode); //esta passando um valor de 1 strcut so
     printf("RS: %d\t", memoria->rs);
@@ -472,6 +484,7 @@ void carregaMem(char palavra[] , struct instrucao* memoria){
     printf("Imm: %d\t", memoria->imm);
     printf("Addr: %d\t", memoria->addr);
     printf("Funct: %d\n\n", memoria->funct);
+    * */
 }
 ResulULA ula(int val1, int val2, int ulaOp) {
 	ResulULA val;
@@ -583,7 +596,7 @@ void controle(struct instrucao* RegInst, RegistradoresMIPS* mips, struct mem Mem
 				val = ula(*PC, 1, 0);
 				*PC = val.resul;
 				estado = ESTADO_D;
-				menuExecucao(*mips, Mem, *topoInst, *PC, estado);
+				menuExecucao(*mips, Mem, *topoInst, *PC, estado, RegInst);
 				break;
 				
 			case ESTADO_D:
@@ -592,7 +605,7 @@ void controle(struct instrucao* RegInst, RegistradoresMIPS* mips, struct mem Mem
 				val = ula(*PC, RegInst->imm, 0);//Calculo do desvio BEQ
 				ULASaida = val.resul;
 				estado = ESTADO_E;
-				menuExecucao(*mips, Mem, *topoInst, *PC, estado);
+				menuExecucao(*mips, Mem, *topoInst, *PC, estado, RegInst);
 				break;
 				
 			case ESTADO_E:
@@ -618,7 +631,7 @@ void controle(struct instrucao* RegInst, RegistradoresMIPS* mips, struct mem Mem
 					printf("erro no opcode %d\n", RegInst->opcode);
 					estado= ESTADO_FINAL;
 				}
-				menuExecucao(*mips, Mem, *topoInst, *PC, estado);
+				menuExecucao(*mips, Mem, *topoInst, *PC, estado, RegInst);
 				break;
 		
 			case ESTADO_EE:
@@ -641,7 +654,7 @@ void controle(struct instrucao* RegInst, RegistradoresMIPS* mips, struct mem Mem
 					free(aux);
 					estado = ESTADO_FINAL;
 				}
-				menuExecucao(*mips, Mem, *topoInst, *PC, estado);
+				menuExecucao(*mips, Mem, *topoInst, *PC, estado, RegInst);
 				break;
 			
 			case ESTADO_LW:
@@ -649,7 +662,7 @@ void controle(struct instrucao* RegInst, RegistradoresMIPS* mips, struct mem Mem
 					mips->registradores[RegInst->rt] = RDM;
 				} 
 				estado= ESTADO_FINAL;
-				menuExecucao(*mips, Mem, *topoInst, *PC, estado);
+				menuExecucao(*mips, Mem, *topoInst, *PC, estado, RegInst);
 				break;
 		}
 	}
@@ -725,20 +738,25 @@ int main(){
 	int op = 1, aux;
 	RegistradoresMIPS bancoReg;
     unsigned int programCounter = 0;
-    desc* pilha = cria_desc();
+    desc* pilha = cria_desc(); //desc pilha
 	nodo* stepback = NULL;
     int topoInst = 0;
     struct mem memoriaComp[MEM_SIZE]; // Passar referencia para alterar dados na funcao controle;
     InicializaReg(&bancoReg);//inicializa registradores com tudo zero
     InicializaMem(memoriaComp);//inicializa memoria com tudo zero
-    struct instrucao inst;
+    //struct instrucao inst;
     carregar_memoria(memoriaComp, &topoInst);
     while(op != 0){
-		printf("A proxima instrucao e:");
-		casm(memoriaComp[programCounter].inst);
-		printf("\n");
-		printf("Escolha uma opcao:\n");
-		printf("1- step\t\t2- stepback\t3- Imprime simulador\t4- run\t0- exit\n");
+		printf("\n\t\t________________________________________________________\n");
+		printf("\t\t|                    Menu de opcoes                     |\n");
+		if(programCounter <= topoInst){
+			printf("\t\t|\tA proxima instrucao e:");
+			casm(memoriaComp[programCounter].inst);
+			printf("\t\t|\n");
+		}
+		printf("\t\t|\tEscolha uma opcao:\t\t\t\t|\n");
+		printf("\t\t|\t1- step\t\t\t\t2- stepback\t|\n\t\t|\t3- Imprime simulador\t\t4- run\t\t|\n\t\t|\t0- exit\t\t\t\t\t\t|\n");
+		printf("\t\t|_______________________________________________________|\n");
 		scanf("%i", &op);
 		switch(op){
 			case 1://executa
@@ -746,7 +764,7 @@ int main(){
 					PUSH(pilha, programCounter, memoriaComp, &bancoReg);
 					controle(&inst, &bancoReg, memoriaComp, &programCounter, &topoInst, ESTADO_B);
 				}else{
-					printf("Nao existe mais instrucoes!!!");
+					printf("Nao existe mais instrucoes!!!\n");
 				}
 				break;
 			case 2://step back
@@ -765,24 +783,29 @@ int main(){
 				//imprimeDados(memoriaComp, topoInst);
 				break;
 			case 4:
+				printf("Executando...\n");
 				while(programCounter <= topoInst){
-					printf("Executando...\n");
-					PUSH(pilha, programCounter, memoriaComp, &bancoReg);
-					controle(&inst, &bancoReg, memoriaComp, &programCounter, &topoInst, ESTADO_B);
 					printf("Voce quer voltar uma instrucao:\n 1- Voltar 2- Continuar\n");
 					scanf("%i", &aux);
-					if(aux == 1)
+					if(aux == 2){
+						PUSH(pilha, programCounter, memoriaComp, &bancoReg);
+						controle(&inst, &bancoReg, memoriaComp, &programCounter, &topoInst, ESTADO_B);
+					}
+					if(aux == 1){
 						if(pilha->topo != NULL){
 							stepback = POP(pilha);
 							BackInstruction(stepback, memoriaComp, &programCounter, &bancoReg);
 							free(stepback);
 							imprimeRegistradores(bancoReg, programCounter);
 							//imprimeDados(memoriaComp, topoInst);
-						}						
+						}else{
+							printf("Nao tem instrucao mais para voltar\n");
+						}
+					}						
 				}	
 				printf("Acabou o programa!!");
 		
-			case 0:
+			case 0: //Exit
 				fre_pilha(pilha);
 				return 0;
 		}			
