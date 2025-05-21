@@ -273,7 +273,8 @@ void imprimeDados(struct mem memoriaComp[], int limiteInst){
 	printf("Legenda: Posicao [Conteudo]\n");
 	if(limiteInst < 256){
 		for(aux=0; aux<limiteInst; aux++){
-			strcpy(sAux, memoriaComp[aux].inst);
+			strncpy(sAux, memoriaComp[aux].inst, 16);
+			sAux[16] = '\0';
 			printf("%d [", aux);
 			casm(sAux);
 			printf("]\t");
@@ -323,6 +324,7 @@ void carregar_memoria(struct mem* memoriaDados, int* limiteInst) {
             memoriaDados[*limiteInst].inst[16] = '\0';
             (*limiteInst)++;
         }	
+        linha[5] = '\0';
         strcpy(memoriaDados[127].inst, linha);
         while(fgets(linha, sizeof(linha), arquivo) != NULL){
 			strncpy(aux, linha, 3);
@@ -338,65 +340,68 @@ void carregar_memoria(struct mem* memoriaDados, int* limiteInst) {
 }
 
 void carregaMem(char palavra[] , struct instrucao* memoria){
+	char aux[17];
+	aux[16] = '\0';
+	strncpy(aux, palavra, 16);
 	char binarioVI[6], binarioIV[4], binarioIII[3], binarioII[12];
 	int indiceS; // Indice Switch
 	int decimal; // Variavel para preencher o vetor memoria
 	inicializaInst(memoria);
-	strncpy(binarioIV, palavra +0, 4);
+	strncpy(binarioIV, aux +0, 4);
 	binarioIV[4] = '\0';
 	indiceS = cbd(binarioIV); // Conversao do opcode para decimal(Inteiro), a fim de acessar o Switch
 	switch (indiceS){
 		case 0://tipo R
-			strcpy(memoria->palavra, palavra); // Guarda a palavra de instrucao
+			strcpy(memoria->palavra, aux); // Guarda a palavra de instrucao
 			
 			memoria->opcode = indiceS; // indiceS Possui decimal do opcode
 			
-			strncpy(binarioIII, palavra +4, 3); // Copia para a string[3] as tres primeiras posicoes da palavra[] apartir da quarta posicao
+			strncpy(binarioIII, aux +4, 3); // Copia para a string[3] as tres primeiras posicoes da palavra[] apartir da quarta posicao
 			binarioIII[3] = '\0'; // Sinaliza o fim da String
 			decimal = cbd(binarioIII); // Conversao binario(string)/decimal(int)
 			memoria->rs = decimal; // Membro recebe valor decimal		RS
 			
-			strncpy(binarioIII, palavra +7, 3); // ||		...	Apartir da setima posicao
+			strncpy(binarioIII, aux +7, 3); // ||		...	Apartir da setima posicao
 			binarioIII[3] = '\0';
 			decimal = cbd(binarioIII);
 			memoria->rt = decimal; // RT
 			
-			strncpy(binarioIII, palavra +10, 3);
+			strncpy(binarioIII, aux +10, 3);
 			binarioIII[3] = '\0';
 			decimal = cbd(binarioIII);
 			memoria->rd = decimal; // RD
 			
-			strncpy(binarioIII, palavra +13, 3);
+			strncpy(binarioIII, aux +13, 3);
 			binarioIII[3] = '\0';
 			decimal = cbd(binarioIII);
 			memoria->funct = decimal; // FUNCT
 			break;
 		
 		case 2:// tipo j
-			strcpy(memoria->palavra, palavra); // PALAVRA
+			strcpy(memoria->palavra, aux); // PALAVRA
 			memoria->opcode = indiceS;
 			
-			strncpy(binarioII, palavra +4, 12);
+			strncpy(binarioII, aux +4, 12);
 			binarioII[12] = '\0';
 			memoria->addr = cbd(binarioII);
 			break;
 		//tipo i
 		case 4: //ADDi
-			strcpy(memoria->palavra, palavra); // PALAVRA
+			strcpy(memoria->palavra, aux); // PALAVRA
 			
 			memoria->opcode = indiceS; // OPCODE
 
-			strncpy(binarioIII, palavra +4, 3); 
+			strncpy(binarioIII, aux +4, 3); 
 			binarioIII[3] = '\0';
 			decimal = cbd(binarioIII);
 			memoria->rs = decimal; // RS
 			
-			strncpy(binarioIII, palavra +7, 3);
+			strncpy(binarioIII, aux +7, 3);
 			binarioIII[3] = '\0';
 			decimal = cbd(binarioIII);
 			memoria->rt = decimal; // RT
 			
-			strncpy(binarioVI, palavra +10, 6);
+			strncpy(binarioVI, aux +10, 6);
 			binarioVI[6] = '\0';
 			if(binarioVI[0] == '1')
 				decimal = cb2d(binarioVI); // cb2d = Conversao binario(complemento de dois)/decimal
@@ -406,42 +411,42 @@ void carregaMem(char palavra[] , struct instrucao* memoria){
 			break;
 			
 		case 8: //BEQ
-			strcpy(memoria->palavra, palavra); // PALAVRA
+			strcpy(memoria->palavra, aux); // PALAVRA
 			
 			memoria->opcode = indiceS; // OPCODE
 
-			strncpy(binarioIII, palavra +4, 3); 
+			strncpy(binarioIII, aux +4, 3); 
 			binarioIII[3] = '\0';
 			decimal = cbd(binarioIII);
 			memoria->rs = decimal; // RS
 			
-			strncpy(binarioIII, palavra +7, 3);
+			strncpy(binarioIII, aux +7, 3);
 			binarioIII[3] = '\0';
 			decimal = cbd(binarioIII);
 			memoria->rt = decimal; // RT
 			
-			strncpy(binarioVI, palavra +10, 6);
+			strncpy(binarioVI, aux +10, 6);
 			binarioVI[6] = '\0';
 			decimal = cbd(binarioVI);
 			memoria->imm = decimal; // ADDR
 			break;
 			
 		case 11: //LW
-			strcpy(memoria->palavra, palavra); // PALAVRA
+			strcpy(memoria->palavra, aux); // PALAVRA
 			
 			memoria->opcode = indiceS; // OPCODE
 			
-			strncpy(binarioIII, palavra +4, 3); 
+			strncpy(binarioIII, aux +4, 3); 
 			binarioIII[3] = '\0';
 			decimal = cbd(binarioIII);
 			memoria->rs = decimal; // RS
 			
-			strncpy(binarioIII, palavra +7, 3);
+			strncpy(binarioIII, aux +7, 3);
 			binarioIII[3] = '\0';
 			decimal = cbd(binarioIII);
 			memoria->rt = decimal; // RT
 			
-			strncpy(binarioVI, palavra +10, 6);
+			strncpy(binarioVI, aux +10, 6);
 			binarioVI[6] = '\0';
 			if(binarioVI[0] == '1'){
 				decimal = cb2d(binarioVI); // cb2d = Conversao binario(complemento de dois)/decimal
@@ -452,21 +457,21 @@ void carregaMem(char palavra[] , struct instrucao* memoria){
 			break;
 				
 		case 15: //SW
-			strcpy(memoria->palavra, palavra); // PALAVRA
+			strcpy(memoria->palavra, aux); // PALAVRA
 			
 			memoria->opcode = indiceS; // OPCODE
 			
-			strncpy(binarioIII, palavra +4, 3); 
+			strncpy(binarioIII, aux +4, 3); 
 			binarioIII[3] = '\0';
 			decimal = cbd(binarioIII);
 			memoria->rs = decimal; // RS
 			
-			strncpy(binarioIII, palavra +7, 3);
+			strncpy(binarioIII, aux +7, 3);
 			binarioIII[3] = '\0';
 			decimal = cbd(binarioIII); // 												ADDR É O DESTINO!!!!
 			memoria->rt = decimal; // RT
 			
-			strncpy(binarioVI, palavra +10, 6);
+			strncpy(binarioVI, aux +10, 6);
 			binarioVI[6] = '\0';
 			if(binarioVI[0] == '1'){
 				decimal = cb2d(binarioVI);} // cb2d = Conversao binario(complemento de dois)/decimal
@@ -611,14 +616,17 @@ void controle(struct instrucao* RegInst, RegistradoresMIPS* mips, struct mem Mem
 			case ESTADO_E:
 				if(RegInst->opcode ==0){//tipo R
 					val = ula(Reg_A, Reg_B, RegInst->funct);
+					ULASaida = val.resul;
 					estado = ESTADO_EE;
 				}
 				else if(RegInst->opcode == 11 || RegInst->opcode == 15 || RegInst->opcode==4){ //lw ou sw ou addi
 					val = ula(Reg_A, RegInst->imm, 0);
+					ULASaida = val.resul;
 					estado = ESTADO_EE;
 				} 
 				else if (RegInst->opcode == 8) { //beq
 					val = ula(Reg_A, Reg_B, 2);
+					ULASaida = val.resul;
 					if(val.zero == 1)
 						*PC = ULASaida;
 					estado = ESTADO_FINAL;
@@ -636,21 +644,21 @@ void controle(struct instrucao* RegInst, RegistradoresMIPS* mips, struct mem Mem
 		
 			case ESTADO_EE:
 				if(RegInst->opcode == 0){//tipo R
-					escrever_registrador(mips, RegInst->rd, val.resul);
+					escrever_registrador(mips, RegInst->rd, ULASaida);
 					estado = ESTADO_FINAL;
 				}
 				if(RegInst->opcode == 4){//addi
-					escrever_registrador(mips, RegInst->rt, val.resul);
+					escrever_registrador(mips, RegInst->rt, ULASaida);
 					estado = ESTADO_FINAL;
 				}
 				if(RegInst->opcode == 11){// lw 
-					RDM = cbd(Mem[val.resul].inst);
+					RDM = cbd(Mem[ULASaida].inst);
 					estado = ESTADO_LW;
 				} 
 				else if (RegInst->opcode == 15){// sw
 					
 					aux = cdb(ler_registrador(mips, RegInst->rt));
-					strncpy(Mem[val.resul].inst, aux, 16);
+					strncpy(Mem[ULASaida].inst, aux, 16);
 					free(aux);
 					estado = ESTADO_FINAL;
 				}
@@ -744,7 +752,7 @@ int main(){
     struct mem memoriaComp[MEM_SIZE]; // Passar referencia para alterar dados na funcao controle;
     InicializaReg(&bancoReg);//inicializa registradores com tudo zero
     InicializaMem(memoriaComp);//inicializa memoria com tudo zero
-    //struct instrucao inst;
+    struct instrucao inst;
     carregar_memoria(memoriaComp, &topoInst);
     while(op != 0){
 		printf("\n\t\t________________________________________________________\n");
@@ -773,14 +781,14 @@ int main(){
 					BackInstruction(stepback, memoriaComp, &programCounter, &bancoReg);
 					free(stepback);
 					imprimeRegistradores(bancoReg, programCounter);
-					//imprimeDados(memoriaComp, topoInst);
+					imprimeDados(memoriaComp, topoInst);
 				}else{
 					printf("Nao tem instrucao mais para voltar\n");
 				}
 				break;	
 			case 3://imprime simulador
 				imprimeRegistradores(bancoReg, programCounter);
-				//imprimeDados(memoriaComp, topoInst);
+				imprimeDados(memoriaComp, topoInst);
 				break;
 			case 4:
 				printf("Executando...\n");
@@ -797,7 +805,7 @@ int main(){
 							BackInstruction(stepback, memoriaComp, &programCounter, &bancoReg);
 							free(stepback);
 							imprimeRegistradores(bancoReg, programCounter);
-							//imprimeDados(memoriaComp, topoInst);
+							imprimeDados(memoriaComp, topoInst);
 						}else{
 							printf("Nao tem instrucao mais para voltar\n");
 						}
